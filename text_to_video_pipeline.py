@@ -188,6 +188,7 @@ class TextToVideoPipeline(StableDiffusionPipeline):
         if x_t1_1 is not None:
             x_t1_1 = rearrange(x_t1_1, "(b f) c w h -> b c f  w h", f=f)
             res["x_t1_1"] = x_t1_1.detach().clone()
+
         return res
 
     def decode_latents(self, latents):
@@ -295,11 +296,22 @@ class TextToVideoPipeline(StableDiffusionPipeline):
         # Prepare timesteps
         self.scheduler.set_timesteps(num_inference_steps, device=device)
         timesteps = self.scheduler.timesteps
+        # Text2Video-Zero에서는 num_inference_steps를 50으로 설정하여, 50-step 샘플링을 한다
+
 
         # print(f" Latent shape = {latents.shape}")
 
         # Prepare latent variables
         num_channels_latents = self.unet.in_channels
+
+        '''
+        
+        Text2Video-Zero는 motion을 학습하지 않았기 때문에 motion field로 latent를 직접 warp해서 프레임들을 만들어야 함.
+        
+        논문 3.3.1 Motion Dynamics in Latent Codes
+        1. Randomly sample the latent code of the first frame (첫 프레임을 만들어내기 위한 noise)
+        2. Desnoing 과정 중, 중간 latent를 Wrap에 사용
+        '''
 
         xT = self.prepare_latents(
             batch_size * num_videos_per_prompt,
@@ -338,7 +350,7 @@ class TextToVideoPipeline(StableDiffusionPipeline):
                           701, 681, 661, 641, 621, 601, 581, 561, 541, 521, 501, 481, 461, 441,
                           421, 401, 381, 361, 341, 321, 301, 281, 261, 241, 221, 201, 181, 161,
                           141, 121, 101,  81,  61,  41,  21,   1]
-        timesteps_ddpm.reverse()
+        timesteps_ddpm.reverse()  # reverse 후: [1, 21, 41, …, 961, 981]
 
         t0 = timesteps_ddpm[t0]
         t1 = timesteps_ddpm[t1]
@@ -359,14 +371,19 @@ class TextToVideoPipeline(StableDiffusionPipeline):
                                       null_embs=null_embs, text_embeddings=text_embeddings, latents_local=xT, latents_dtype=dtype, guidance_scale=guidance_scale, guidance_stop_step=guidance_stop_step,
                                       callback=callback, callback_steps=callback_steps, extra_step_kwargs=extra_step_kwargs, num_warmup_steps=num_warmup_steps)
 
+        '''
+        2. x0 = DDIM backward로 생성된 첫 프레임 latent.
+        '''
         x0 = ddim_res["x0"].detach()
 
         if "x_t0_1" in ddim_res:
             x_t0_1 = ddim_res["x_t0_1"].detach()
         if "x_t1_1" in ddim_res:
             x_t1_1 = ddim_res["x_t1_1"].detach()
+
         del ddim_res
         del xT
+
         if use_motion_field:
             del x0
 

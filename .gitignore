@@ -1,3 +1,5 @@
 __pycache__/
 /annotator/
 /frames/
+/__assets__/
+/.ipynb_checkpoints/

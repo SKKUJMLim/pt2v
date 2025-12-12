@@ -55,10 +55,15 @@ for i in range(frames_np.shape[0]):
     frame = torch.from_numpy(frames_np[i])      # (H, W, 3)
     frame = frame.permute(2, 0, 1)             # (3, H, W)
     clip.append(frame)
+    print("frame shape: ", frame.shape)
 
 # 4. preprocessor 적용 (clip = list of [3, H, W])
 with torch.no_grad():
     processed = processor(clip)    # processor는 내부에서 resize, crop 등 수행
+
+
+print("processed shape:", processed[0].shape)
+
 
 # processor는 [transformed_clip] 형식의 리스트를 반환한다고 가정
 if isinstance(processed, list):

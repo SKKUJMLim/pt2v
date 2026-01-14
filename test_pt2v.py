@@ -28,7 +28,7 @@ def main():
     model_id = "runwayml/stable-diffusion-v1-5"
     model = PT2VModel(model_id=model_id, device=device, dtype=dtype)
 
-    prompt = "A basketball free falls in the air"
+    prompt = "A tiger galloping on a street"
     num_frames = 8
     fps = 4
 

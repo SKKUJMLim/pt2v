@@ -3,3 +3,4 @@ __pycache__/
 /frames/
 /__assets__/
 /.ipynb_checkpoints/
+/Analysis/diffusion_steps/
